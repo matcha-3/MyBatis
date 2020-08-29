@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.smbms.dao.bill.BillMapper">
+    <!--根据条件查询订单表-->
+    <select id="getBillList"resultType="Bill">
+        select b.*,proName as providerName from smbms_bill b,smbms_provider p where
+        b.providerld=p.id
+        <if test="productName!=null and productName!=''">
+            and b.productName like CONCAT('%',#{productName},'%')
+        </if>
+        <if test="isPayment!=null">
+            and b.isPayment =#{isPayment}
+        </if>
+    </select>
+
+</mapper>

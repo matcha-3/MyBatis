@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiia.dao.UserMapper">
+    <!--查询用户列表-->
+    <select id="getUserList" resultType="User">
+        select * from smbms_user
+    </select>
+    <!--查询用户表记录数-->
+    <select id="getUserCount" resultType="int">
+        select count(1) as count from smbms_user
+    </select>
+
+    <!--根据用户名称查询用户列表(模糊查询)-->
+    <select id="getUserListByUserName" resultType="User" parameterType="String">
+        select * from smbms_user where userName like CONCAT ('%',#{userName},'%')
+    </select>
+
+    <!--查询用户列表(参数:对象入参)-->
+    <select id="getUserListByUserPojo" resultType="User" parameterType="User">
+        select * from smbms_user where userName like CONCAT('%',#{userName},'%')and userRole=#{userRole}
+    </select>
+
+    <!--查询用户列表(参数:Map)-->
+    <select id="getUserListByMap" parameterType="Map" resultType="User">
+        select *from smbms_user where userName like CONCAT('%',#{uName},'%')and userRole=#{uRole}
+    </select>
+
+    <!-- 查询用户列表(返回自定义类型)-->
+    <resultMap id="userWithRoleName" type="User">
+        <result property="userCode" column="userCode"/>
+        <result property="userName" column="userName"/>
+        <result property="gender" column="gender"/>
+        <result property="birthday" column="birthday"/>
+        <result property="phone" column="phone"/>
+        <result property="userRoleName" column="roleName"/>
+    </resultMap>
+    <select id="getUserWithRoleNameListByUserPojo"
+        resultMap="userWithRoleName" parameterType="User">
+        select u.*,r.roleName from smbms_user u,smbms_role r where u.userName like CONCAT('%',#{userName},'%')
+        and u.userRole=#{userRole} and u.userRole=r.id
+    </select>
+
+
+
+    <!--增加用户-->
+    <insert id="addUser" parameterType="User">
+        insert into smbms_user(userCode,userName,userPassword,gender,birthday,phone,
+        address,userRole,createdBy,creationDate)
+        		(#{userCode},#{userName},#{userPassword},#{gender},#{birthday},#{phone},
+		#{address},#{userRole},#{createdBy},#{creationDate})
+    </insert>
+
+    <!-- 修改用户信息-->
+    <update id="modifyUser" parameterType="User">
+        update smbms_user set userCode=#{userCode},userName=#{userName},userPassword=#{userPassword},
+        gender=#{gender},birthday=#{birthday},phone=#{phone},address=#{address},
+        userRole=#{userRole},modifyBy=#{modifyBy},modifyDate=Now()
+        where id=#{id}
+    </update>
+
+    <!--修改当前用户密码-->
+    <update id="updatePwd" >
+        update smbms_user set userPassword=#{userPassword}
+        where id=#{id}
+    </update>
+    <!--根据userId删除用户信息-->
+    <delete id="deleteUserById" parameterType="Integer">
+        delete from smbms_user
+        where id=#{id}
+    </delete>
+
+    <!--if(判断参数):实现简单的条件判断-->
+    <select id="getUserListByUserPojoWithlf" parameterType="User" resultType="User">
+        select * from smbms_user u,smbms_role r
+        where u.userRole=r.id
+        <if test="userName!=null and userName!=''">
+            and userName like CONCAT ('%',#{userName},'%')
+        </if>
+        <if test="userRole!=null and userRole!=''">
+            and userRole = #{userRole}
+        </if>
+    </select>
+
+    <!-- where:简化SQL语句中where条件判断 智能处理and和or-->
+    <select id="getUserListByUserPojoWithWhere" resultType="User" parameterType="User">
+        select * from smbms_user u
+        <where>
+            <if test="userName!=null and userName!=''">
+                userName like CONCAT('%'.#{userName},'%')
+            </if>
+            <if test="userRole!=null and userRole!=''">
+                and userRole=#{userRole}
+            </if>
+        </where>
+    </select>
+
+    <!--set元素可以用动态包含需要的更新的列。忽略其他不更新的列-->
+    <update id="modifyUserWithSet" parameterType="User">
+        update smbms_user
+        <set>
+            <if test="userCode!=null and userCode!=''">userCode=#{userCode},</if>
+            <if test="userName!=null and userName!=''">userName=#{userName},</if>
+            <if test="userPassword!=null and userPassword!=''">userPassword=#{userPassword},</if>
+            <if test="gender!=null and gender!=''">gender=#{gender},</if>
+            <if test="birthday!=null and birthday!=''">birthday={birthday},</if>
+            <if test="phone!=null and phone!=''">phone=#{phone},</if>
+            <if test="address!=null and address!=''">address=#{address},</if>
+            <if test="userRole!=null and userRole!=''">userRole=#{userRole}</if>
+            modifyBy=#{id},
+            modifyDate=Now()
+        </set>
+        where id=#{id}
+    </update>
+
+
+    <!--trim:更灵活地去除多余关键字代替where和set-->
+    <select id="getUserListByUserPojoWithTrim" resultType="User" parameterType="User">
+        select * from smbms_user u
+        <trim prefix="where" prefixOverrides="and|or">
+            <if test="userName!=null and userName!=''">
+                userName like CONCAT('%',#{userName},'%')
+            </if>
+            <if test="userRole!=null and userRole!=''">
+                and userRole=#{userRole}
+            </if>
+        </trim>
+    </select>
+
+    <!-- trim: 更灵活地去除多余关键字 替代where和set -->
+    <update id="modifyUserWithTrim" parameterType="User">
+        update smbms_user
+        <trim prefix="set" suffixOverrides=",">
+            <if test="userCode!=null and userCode!=''">userCode=#{userCode},</if>
+            <if test="userName!=null and userName!=''">userName=#{userName},</if>
+            <if test="userPassword!=null and userPassword!=''">userPassword=#{userPassword},</if>
+            <if test="gender!=null and gender!=''">gender=#{gender},</if>
+            <if test="birthday!=null and birthday!=''">birthday=#{birthday},</if>
+            <if test="phone!=null and phone!=''">phone=#{phone},</if>
+            <if test="address!=null and address!=''">address=#{address},</if>
+            <if test="userRole!=null and userRole!=''">userRole=#{userRole},</if>
+            modifyBy=#{id},
+            modifyDate=Now()
+        </trim>
+        where id = #{id}
+    </update>
+
+    <!-- foreach: 迭代一个集合，通常用于in条件  collection属性用于指定传入参数的类型 list-->
+    <select id="getUserListByIdListWithForeach" resultType="User">
+        select * from smbms_user u where id in 
+        <foreach collection="list" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- foreach: 迭代一个集合，通常用于in条件  collection属性用于指定传入参数的类型 array-->
+    <select id="getUserListByIdArrayWithForeach" resultType="User">
+        select * from smbms_user u where id in
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- foreach: 迭代一个集合，通常用于in条件  collection属性用于指定传入参数的类型 map-->
+    <select id="getUserListByIdMapWithForeach" resultType="User">
+        select * from smbms_user u where id in
+        <foreach collection="idMaps" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+    <!-- choose(when、otherwise): 相当于Java中switch语句 当when有条件满足的时候，就跳出choose -->
+    <select id="getUserListByUserPojoWithChoose" resultType="User" parameterType="User">
+        select * from smbms_user u 
+        <where>
+            <choose>
+                <when test="userName!=null and userName!=''">
+                    userName like CONCAT ('%',#{userName},'%')
+                </when>
+                <when test="userRole!=null and userRole!=''">
+                    userRole=#{userRole}
+                </when>
+                <when test="userCode!=null and userCode!=''">
+                    userCode=#{userCode}
+                </when>
+            </choose>
+        </where>
+    </select>
+
+    <!-- sql:定义一个共用的sql语句片段，供其他标记调用 -->
+    <select id="getUserListBySql" resultType="User">
+        select
+        <include refid="userColumn"></include>
+        from smbms_user u
+    </select>
+
+    <select id="getUserListBySql2" resultType="User" parameterType="int">
+        select
+        <include refid="userColumn"></include>
+        from smbms_user u where id=#{id}
+    </select>
+
+    <sql id="userColumn">
+		id,userName,userCode,userRole
+	</sql>
+</mapper>

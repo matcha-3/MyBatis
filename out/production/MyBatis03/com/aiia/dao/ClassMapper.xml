@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiia.dao.ClassMapper">
+
+    <!--
+        一对一映射（查班级时，直接获取对应的老师对象）有两种处理方法
+        #1 联合查询
+        SELECT * FROM class c, teacher t WHERE c.teacher_id=t.t_id AND c.c_id=1;
+
+         #2 两次查询
+         SELECT * FROM class c WHERE c.c_id=1; // c.teacher_id = 1
+         SELECT * FROM teacher t WHERE t.t_id=c.teacher_id; // 把上面查出的c.teacher_id赋值到第二个查询中
+
+         MyBatis中使用association标签来解决一对一的关联查询，association标签可用的属性如下：
+
+            - property:对象属性的名称
+            - javaType:对象属性的类型
+            - column:所对应的外键字段名称
+            - select:使用另一个查询封装的结果
+     -->
+
+    <!--
+        一对多映射（查班级时，直接获取对应的老师对象）有两种处理方法
+       #1 联合查询
+       SELECT * FROM class c, teacher t, student s WHERE c.teacher_id=t.t_id AND c.c_id=s.class_id AND c.c_id=1;
+
+         #2 两次查询
+        SELECT * FROM class c WHERE c.c_id=1; // c.teacher_id = 1
+        SELECT * FROM teacher t WHERE t.t_id=c.teacher_id; // 把上面查出的c.teacher_id赋值到第二个查询中的主键比较
+         SELECT * FROM student s WHERE class_id=c.teacher_id; // 把上面查出的c.teacher_id赋值到第二个查询中的外键比较
+
+         MyBatis中使用collection标签来解决一对多的关联查询
+
+         在mybatis中，resultMap可以实现高级映射(使用association、collection实现一对一及一对多映射)，
+         association、collection具备延迟加载功能。
+     -->
+
+    <!--
+        方式一：嵌套结果：使用联合查询，对返回结果进行resultMap映射处理，去掉重复字段
+     -->
+    <select id="getClasses" parameterType="int" resultMap="ClassResultMap">
+	 	SELECT * FROM class c, teacher t, student s WHERE c.teacher_id=t.t_id AND c.c_id=s.class_id AND c.c_id=#{id};
+	 </select>
+
+    <resultMap type="Classes" id="ClassResultMap">
+        <id property="id" column="c_id"/>
+        <result property="name" column="c_name"/>
+        <!-- 使用association进行一对一映射 -->
+        <association property="teacher" javaType="Teacher">
+            <id property="id" column="t_id"/>
+            <result property="name" column="t_name"/>
+        </association>
+        <!-- 使用collection进行一对多映射 -->
+        <!-- ofType指定students集合中对象类型(泛型) -->
+        <collection property="students" ofType="com.aiia.pojo.Student">
+            <id property="id" column="s_id"/>
+            <result property="name" column="s_name"/>
+        </collection>
+    </resultMap>
+
+    <!--
+        方式二：嵌套查询：通过两次查询来返回预期的复杂类型
+     -->
+    <select id="getClasses2" parameterType="int" resultMap="ClassResultMap2">
+	 	SELECT * FROM class c WHERE c.c_id=#{id};
+	 </select>
+    <!-- 映射对应关系 -->
+    <resultMap type="Classes" id="ClassResultMap2">
+        <id property="id" column="c_id"/>
+        <result property="name" column="c_name"/>
+        <!-- 使用association进行一对一映射 -->
+        <association property="teacher" column="teacher_id" select="com.aiia.dao.TeacherMapper.getTeacher"/>
+        <!-- 使用collection进行一对多映射 -->
+        <!-- ofType指定students集合中对象类型(泛型) -->
+        <collection
+                property="students"
+                ofType="com.aiia.pojo.Student"
+                column="c_id"
+                select="com.aiia.dao.StudentMapper.getStudent"
+        >
+        </collection>
+    </resultMap>
+
+    <update id="updateClasses" parameterType="Classes">
+		update class set c_name=#{name} where c_id=#{id};
+	</update>
+
+
+</mapper>
